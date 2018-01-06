@@ -178,10 +178,10 @@ Encoder_encode(Encoder *self, PyObject *args) {
     for (size_t i = 0; i < num_desired_blocks; i++) {
         if (c_desired_blocks_nums[i] >= self->kk) {
             c_desired_checkblocks_ids[check_block_index] = c_desired_blocks_nums[i];
-            pystrs_produced[check_block_index] = PyString_FromStringAndSize(NULL, sz);
+            pystrs_produced[check_block_index] = PyBytes_FromStringAndSize(NULL, sz);
             if (pystrs_produced[check_block_index] == NULL)
                 goto err;
-            check_blocks_produced[check_block_index] = (gf*)PyString_AsString(pystrs_produced[check_block_index]);
+            check_blocks_produced[check_block_index] = (gf*)PyBytes_AsString(pystrs_produced[check_block_index]);
             if (check_blocks_produced[check_block_index] == NULL)
                 goto err;
             check_block_index++;
@@ -453,10 +453,10 @@ Decoder_decode(Decoder *self, PyObject *args) {
 
     /* Allocate space for all of the recovered blocks. */
     for (i=0; i<needtorecover; i++) {
-        recoveredpystrs[i] = PyString_FromStringAndSize(NULL, sz);
+        recoveredpystrs[i] = PyBytes_FromStringAndSize(NULL, sz);
         if (recoveredpystrs[i] == NULL)
             goto err;
-        recoveredcstrs[i] = (gf*)PyString_AsString(recoveredpystrs[i]);
+        recoveredcstrs[i] = (gf*)PyBytes_AsString(recoveredpystrs[i]);
         if (recoveredcstrs[i] == NULL)
             goto err;
     }
