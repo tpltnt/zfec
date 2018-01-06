@@ -620,6 +620,8 @@ static PyMethodDef fec_functions[] = {
 #ifndef PyMODINIT_FUNC	/* declarations for DLL import/export */
 #define PyMODINIT_FUNC void
 #endif
+
+/* Python 2 module initialization
 PyMODINIT_FUNC
 init_fec(void) {
     PyObject *module;
@@ -649,3 +651,22 @@ init_fec(void) {
  * originally inspired by fecmodule.c by the Mnet Project, especially Myers
  * Carpenter and Hauke Johannknecht
  */
+
+
+/**
+ * Python 3 module initialization
+ */
+
+// define module
+static struct PyModuleDef cModuleDefs = {
+    PyModuleDef_HEAD_INIT,
+    "_fec",
+    fec__doc__,
+    -1,  // assume global state inside module
+    fec_functions
+};
+
+// initialize it
+PyMODINIT_FUNC init_fec(void) {
+  return PyModule_Create(&cModuleDefs);
+}
