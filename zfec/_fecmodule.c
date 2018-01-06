@@ -227,7 +227,7 @@ static void
 Encoder_dealloc(Encoder * self) {
     if (self->fec_matrix)
         fec_free(self->fec_matrix);
-    self->ob_base->tp_free((PyObject*)self);
+    Py_TYPE(self)->tp_free((PyObject*)self);
 }
 
 static PyMethodDef Encoder_methods[] = {
@@ -500,7 +500,7 @@ static void
 Decoder_dealloc(Decoder * self) {
     if (self->fec_matrix)
         fec_free(self->fec_matrix);
-    self->ob_base->tp_free((PyObject*)self);
+    Py_TYPE(self)->tp_free((PyObject*)self);
 }
 
 static PyMethodDef Decoder_methods[] = {
