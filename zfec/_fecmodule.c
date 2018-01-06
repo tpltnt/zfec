@@ -130,11 +130,11 @@ Encoder_encode(Encoder *self, PyObject *args) {
         fast_desired_blocks_nums_items = PySequence_Fast_ITEMS(fast_desired_blocks_nums);
 
         for (size_t i = 0; i < num_desired_blocks; i++) {
-            if (!PyInt_Check(fast_desired_blocks_nums_items[i])) {
+            if (!PyLong_Check(fast_desired_blocks_nums_items[i])) {
                 PyErr_Format(py_fec_error, "Precondition violation: second argument is required to contain int.");
                 goto err;
             }
-            c_desired_blocks_nums[i] = PyInt_AsLong(fast_desired_blocks_nums_items[i]);
+            c_desired_blocks_nums[i] = PyLong_AsLong(fast_desired_blocks_nums_items[i]);
             if (c_desired_blocks_nums[i] >= self->kk)
                 num_check_blocks_produced++;
         }
@@ -409,11 +409,11 @@ Decoder_decode(Decoder *self, PyObject *args) {
         goto err;
 
     for (i=0; i<self->kk; i++) {
-        if (!PyInt_Check(fastblocknumsitems[i])) {
+        if (!PyLong_Check(fastblocknumsitems[i])) {
             PyErr_Format(py_fec_error, "Precondition violation: second argument is required to contain int.");
             goto err;
         }
-        tmpl = PyInt_AsLong(fastblocknumsitems[i]);
+        tmpl = PyLong_AsLong(fastblocknumsitems[i]);
         if (tmpl < 0 || tmpl > 255) {
             PyErr_Format(py_fec_error, "Precondition violation: block nums can't be less than zero or greater than 255.  %ld\n", tmpl);
             goto err;
