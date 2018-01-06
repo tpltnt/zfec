@@ -1,21 +1,27 @@
-import easyfec, zfec
+import easyfec
+import zfec
 from pyutil import fileutil
 from pyutil.mathutil import pad_size, log_ceil
 
-import array, os, struct
+import array
+import os
+import struct
 
 CHUNKSIZE = 4096
 
 from base64 import b32encode
-def ab(x): # debuggery
+
+
+def ab(x):  # debuggery
     if len(x) >= 3:
-        return "%s:%s" % (len(x), b32encode(x[-3:]),)
+        return "{0}:{1}".format(len(x), b32encode(x[-3:]))
     elif len(x) == 2:
-        return "%s:%s" % (len(x), b32encode(x[-2:]),)
+        return "{0}:{1}".format(len(x), b32encode(x[-2:]))
     elif len(x) == 1:
-        return "%s:%s" % (len(x), b32encode(x[-1:]),)
+        return "{0}:{1}".format((len(x), b32encode(x[-1:]))
     elif len(x) == 0:
-        return "%s:%s" % (len(x), "--empty--",)
+        return "{0}:{1}".format(len(x), "--empty--")
+
 
 class InsufficientShareFilesError(zfec.Error):
     def __init__(self, k, kb, *args, **kwargs):
@@ -24,13 +30,15 @@ class InsufficientShareFilesError(zfec.Error):
         self.kb = kb
 
     def __repr__(self):
-        return "Insufficient share files -- %d share files are required to recover this file, but only %d were given" % (self.k, self.kb,)
+        return "Insufficient share files -- {0} share files are required to recover this file, but only {1} were given".format(self.k, self.kb)
 
     def __str__(self):
         return self.__repr__()
 
+
 class CorruptedShareFilesError(zfec.Error):
     pass
+
 
 def _build_header(m, k, pad, sh):
     """
@@ -55,21 +63,23 @@ def _build_header(m, k, pad, sh):
     val = 0
 
     val |= (m - 1)
-    bitsused += 8 # the first 8 bits always encode m
+    bitsused += 8  # the first 8 bits always encode m
 
-    kbits = log_ceil(m, 2) # num bits needed to store all possible values of k
+    kbits = log_ceil(m, 2)  # num bits needed to store all possible values of k
     val <<= kbits
     bitsused += kbits
 
     val |= (k - 1)
 
-    padbits = log_ceil(k, 2) # num bits needed to store all possible values of pad
+    # num bits needed to store all possible values of pad
+    padbits = log_ceil(k, 2)
     val <<= padbits
     bitsused += padbits
 
     val |= pad
 
-    shnumbits = log_ceil(m, 2) # num bits needed to store all possible values of shnum
+    # num bits needed to store all possible values of shnum
+    shnumbits = log_ceil(m, 2)
     val <<= shnumbits
     bitsused += shnumbits
 
@@ -94,8 +104,10 @@ def _build_header(m, k, pad, sh):
         assert cs[:-4] == '\x00' * (len(cs)-4)
         return cs[-4:]
 
+
 def MASK(bits):
-    return (1<<bits)-1
+    return (1 << bits)-1
+
 
 def _parse_header(inf):
     """
@@ -107,22 +119,24 @@ def _parse_header(inf):
     # The first 8 bits always encode m.
     ch = inf.read(1)
     if not ch:
-        raise CorruptedShareFilesError("Share files were corrupted -- share file %r didn't have a complete metadata header at the front.  Perhaps the file was truncated." % (inf.name,))
+        raise CorruptedShareFilesError("Share files were corrupted -- share file {} didn't have a complete metadata header at the front.  Perhaps the file was truncated.".format(inf.name))
     byte = ord(ch)
     m = byte + 1
 
     # The next few bits encode k.
-    kbits = log_ceil(m, 2) # num bits needed to store all possible values of k
+    kbits = log_ceil(m, 2)  # num bits needed to store all possible values of k
     b2_bits_left = 8-kbits
     kbitmask = MASK(kbits) << b2_bits_left
     ch = inf.read(1)
     if not ch:
-        raise CorruptedShareFilesError("Share files were corrupted -- share file %r didn't have a complete metadata header at the front.  Perhaps the file was truncated." % (inf.name,))
+        raise CorruptedShareFilesError("Share files were corrupted -- share file {} didn't have a complete metadata header at the front.  Perhaps the file was truncated.".format(inf.name))
     byte = ord(ch)
     k = ((byte & kbitmask) >> b2_bits_left) + 1
 
-    shbits = log_ceil(m, 2) # num bits needed to store all possible values of shnum
-    padbits = log_ceil(k, 2) # num bits needed to store all possible values of pad
+    # num bits needed to store all possible values of shnum
+    shbits = log_ceil(m, 2)
+    # num bits needed to store all possible values of pad
+    padbits = log_ceil(k, 2)
 
     val = byte & (~kbitmask)
 
@@ -130,7 +144,7 @@ def _parse_header(inf):
     if needed_padbits > 0:
         ch = inf.read(1)
         if not ch:
-            raise CorruptedShareFilesError("Share files were corrupted -- share file %r didn't have a complete metadata header at the front.  Perhaps the file was truncated." % (inf.name,))
+            raise CorruptedShareFilesError("Share files were corrupted -- share file {} didn't have a complete metadata header at the front.  Perhaps the file was truncated.".format(inf.name))
         byte = struct.unpack(">B", ch)[0]
         val <<= 8
         val |= byte
@@ -144,7 +158,7 @@ def _parse_header(inf):
     if needed_shbits > 0:
         ch = inf.read(1)
         if not ch:
-            raise CorruptedShareFilesError("Share files were corrupted -- share file %r didn't have a complete metadata header at the front.  Perhaps the file was truncated." % (inf.name,))
+            raise CorruptedShareFilesError("Share files were corrupted -- share file {} didn't have a complete metadata header at the front.  Perhaps the file was truncated.".format(inf.name))
         byte = struct.unpack(">B", ch)[0]
         val <<= 8
         val |= byte
@@ -157,8 +171,11 @@ def _parse_header(inf):
 
     return (m, k, pad, sh,)
 
+
 FORMAT_FORMAT = "%%s.%%0%dd_%%0%dd%%s"
 RE_FORMAT = "%s.[0-9]+_[0-9]+%s"
+
+
 def encode_to_files(inf, fsize, dirname, prefix, k, m, suffix=".fec", overwrite=False, verbose=False):
     """
     Encode inf, writing the shares to specially named, newly created files.
@@ -181,56 +198,61 @@ def encode_to_files(inf, fsize, dirname, prefix, k, m, suffix=".fec", overwrite=
 
             fn = os.path.join(dirname, format % (prefix, shnum, m, suffix,))
             if verbose:
-                print "Creating share file %r..." % (fn,)
+                print("Creating share file {} ...".format(fn))
             if overwrite:
                 f = open(fn, "wb")
             else:
-                flags = os.O_WRONLY|os.O_CREAT|os.O_EXCL | (hasattr(os, 'O_BINARY') and os.O_BINARY)
+                flags = os.O_WRONLY | os.O_CREAT | os.O_EXCL | (
+                    hasattr(os, 'O_BINARY') and os.O_BINARY)
                 fd = os.open(fn, flags)
                 f = os.fdopen(fd, "wb")
             f.write(hdr)
             fs.append(f)
             fns.append(fn)
         sumlen = [0]
+
         def cb(blocks, length):
             assert len(blocks) == len(fs)
             oldsumlen = sumlen[0]
             sumlen[0] += length
             if verbose:
                 if int((float(oldsumlen) / fsize) * 10) != int((float(sumlen[0]) / fsize) * 10):
-                    print str(int((float(sumlen[0]) / fsize) * 10) * 10) + "% ...",
+                    print(str(int((float(sumlen[0]) / fsize) * 10) * 10) + "% ...")
 
             if sumlen[0] > fsize:
-                raise IOError("Wrong file size -- possibly the size of the file changed during encoding.  Original size: %d, observed size at least: %s" % (fsize, sumlen[0],))
+                raise IOError("Wrong file size -- possibly the size of the file changed during encoding.  Original size: {0}, observed size at least: {1}".format(fsize, sumlen[0]))
             for i in range(len(blocks)):
                 data = blocks[i]
                 fs[i].write(data)
                 length -= len(data)
 
         encode_file_stringy_easyfec(inf, cb, k, m, chunksize=4096)
-    except EnvironmentError, le:
-        print "Cannot complete because of exception: "
-        print le
-        print "Cleaning up..."
+    except EnvironmentError as le:
+        print("Cannot complete because of exception: ")
+        print(le)
+        print("Cleaning up...")
         # clean up
         while fs:
             f = fs.pop()
-            f.close() ; del f
+            f.close()
+            del f
             fn = fns.pop()
             if verbose:
-                print "Cleaning up: trying to remove %r..." % (fn,)
+                print("Cleaning up: trying to remove {} ...".format(fn))
             fileutil.remove_if_possible(fn)
         return 1
     if verbose:
-        print
-        print "Done!"
+        print()
+        print("Done!")
     return 0
+
 
 # Note: if you really prefer base-2 and you change this code, then please
 # denote 2^20 as "MiB" instead of "MB" in order to avoid ambiguity.  See:
 # http://en.wikipedia.org/wiki/Megabyte
 # Thanks.
-MILLION_BYTES=10**6
+MILLION_BYTES = 10**6
+
 
 def decode_from_files(outf, infiles, verbose=False):
     """
@@ -247,15 +269,15 @@ def decode_from_files(outf, infiles, verbose=False):
     for f in infiles:
         (nm, nk, npadlen, shnum,) = _parse_header(f)
         if not (m is None or m == nm):
-            raise CorruptedShareFilesError("Share files were corrupted -- share file %r said that m was %s but another share file previously said that m was %s" % (f.name, nm, m,))
+            raise CorruptedShareFilesError("Share files were corrupted -- share file {0} said that m was {1} but another share file previously said that m was {2}".format(f.name, nm, m))
         m = nm
         if not (k is None or k == nk):
-            raise CorruptedShareFilesError("Share files were corrupted -- share file %r said that k was %s but another share file previously said that k was %s" % (f.name, nk, k,))
+            raise CorruptedShareFilesError("Share files were corrupted -- share file {0} said that k was {1} but another share file previously said that k was {2}".format(f.name, nk, k))
         if k > len(infiles):
             raise InsufficientShareFilesError(k, len(infiles))
         k = nk
         if not (padlen is None or padlen == npadlen):
-            raise CorruptedShareFilesError("Share files were corrupted -- share file %r said that pad length was %s but another share file previously said that pad length was %s" % (f.name, npadlen, padlen,))
+            raise CorruptedShareFilesError("Share files were corrupted -- share file {0} said that pad length was {1} but another share file previously said that pad length was {2}".format(f.name, npadlen, padlen))
         padlen = npadlen
 
         infs.append(f)
@@ -267,9 +289,10 @@ def decode_from_files(outf, infiles, verbose=False):
     dec = easyfec.Decoder(k, m)
 
     while True:
-        chunks = [ inf.read(CHUNKSIZE) for inf in infs ]
+        chunks = [inf.read(CHUNKSIZE) for inf in infs]
         if [ch for ch in chunks if len(ch) != len(chunks[-1])]:
-            raise CorruptedShareFilesError("Share files were corrupted -- all share files are required to be the same length, but they weren't.")
+            raise CorruptedShareFilesError(
+                "Share files were corrupted -- all share files are required to be the same length, but they weren't.")
 
         if len(chunks[-1]) > 0:
             resultdata = dec.decode(chunks, shnums, padlen=0)
@@ -277,14 +300,15 @@ def decode_from_files(outf, infiles, verbose=False):
             byteswritten += len(resultdata)
             if verbose:
                 if ((byteswritten - len(resultdata)) / (10*MILLION_BYTES)) != (byteswritten / (10*MILLION_BYTES)):
-                    print str(byteswritten / MILLION_BYTES) + " MB ...",
+                    print(str(byteswritten / MILLION_BYTES) + " MB ...")
         else:
             if padlen > 0:
                 outf.truncate(byteswritten - padlen)
-            return # Done.
+            return  # Done.
     if verbose:
-        print
-        print "Done!"
+        print()
+        print("Done!")
+
 
 def encode_file(inf, cb, k, m, chunksize=4096):
     """
@@ -316,14 +340,14 @@ def encode_file(inf, cb, k, m, chunksize=4096):
         blocks
     """
     enc = zfec.Encoder(k, m)
-    l = tuple([ array.array('c') for i in range(k) ])
-    indatasize = k*chunksize # will be reset to shorter upon EOF
+    l = tuple([array.array('c') for i in range(k)])
+    indatasize = k*chunksize  # will be reset to shorter upon EOF
     eof = False
-    ZEROES=array.array('c', ['\x00'])*chunksize
+    ZEROES = array.array('c', ['\x00'])*chunksize
     while not eof:
         # This loop body executes once per segment.
         i = 0
-        while (i<len(l)):
+        while (i < len(l)):
             # This loop body executes once per chunk.
             a = l[i]
             del a[:]
@@ -337,13 +361,14 @@ def encode_file(inf, cb, k, m, chunksize=4096):
                 # padding
                 a.fromstring("\x00" * (chunksize-len(a)))
                 i += 1
-                while (i<len(l)):
+                while (i < len(l)):
                     a = l[i]
                     a[:] = ZEROES
                     i += 1
 
         res = enc.encode(l)
         cb(res, indatasize)
+
 
 try:
     from hashlib import sha1

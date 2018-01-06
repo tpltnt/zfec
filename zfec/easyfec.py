@@ -1,17 +1,20 @@
-# zfec -- a fast C implementation of Reed-Solomon erasure coding with
-# command-line, C, and Python interfaces
-
+"""
+zfec -- a fast C implementation of Reed-Solomon erasure coding with
+command-line, C, and Python interfaces
+"""
+from base64 import b32encode
 import zfec
+
 
 # div_ceil() was copied from the pyutil library.
 def div_ceil(n, d):
     """
     The smallest integer k such that k*d >= n.
     """
-    return (n/d) + (n%d != 0)
+    return (n/d) + (n % d != 0)
 
-from base64 import b32encode
-def ab(x): # debuggery
+
+def ab(x):  # debuggery
     if len(x) >= 3:
         return "%s:%s" % (len(x), b32encode(x[-3:]),)
     elif len(x) == 2:
@@ -20,6 +23,7 @@ def ab(x): # debuggery
         return "%s:%s" % (len(x), b32encode(x[-1:]),)
     elif len(x) == 0:
         return "%s:%s" % (len(x), "--empty--",)
+
 
 class Encoder(object):
     def __init__(self, k, m):
@@ -33,11 +37,14 @@ class Encoder(object):
             reconstruct the input data
         """
         chunksize = div_ceil(len(data), self.fec.k)
-        l = [ data[i*chunksize:(i+1)*chunksize] + "\x00" * min(chunksize, (((i+1)*chunksize)-len(data))) for i in range(self.fec.k) ]
+        l = [data[i*chunksize:(i+1)*chunksize] + "\x00" * min(chunksize,
+                                                              (((i+1)*chunksize)-len(data))) for i in range(self.fec.k)]
         assert len(l) == self.fec.k, (len(l), self.fec.k,)
-        assert (not l) or (not [ x for x in l if len(x) != len(l[0]) ], (len(l), [ ab(x) for x in l ], chunksize, self.fec.k, len(data),))
+        assert (not l) or (not [x for x in l if len(x) != len(l[0])], (len(
+            l), [ab(x) for x in l], chunksize, self.fec.k, len(data),))
         return self.fec.encode(l)
-        
+
+
 class Decoder(object):
     def __init__(self, k, m):
         self.fec = zfec.Decoder(k, m)
@@ -55,10 +62,10 @@ class Decoder(object):
             return data
 
 # zfec -- fast forward error correction library with Python interface
-# 
+#
 # Copyright (C) 2007 Allmydata, Inc.
 # Author: Zooko Wilcox-O'Hearn
-# 
+#
 # This file is part of zfec.
-# 
+#
 # See README.rst for licensing information.
